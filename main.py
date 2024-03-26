@@ -8,6 +8,7 @@ import json
 import logging
 from supabase import create_client,Client
 import os
+import sentry_sdk
 
 load_dotenv()
 
@@ -17,13 +18,25 @@ async def lifespan(app: FastAPI):
     key = os.environ.get("SUPABASE_KEY")
     supabase: Client = create_client(url, key)
     await load_data_test()
-    await load_data_into_supabase(supabase=supabase)
-    load_data_cron()
+    # await load_data_into_supabase(supabase=supabase)
+    # logging.info("Starting up cron JOB")
+    load_data_cron(supabase=supabase)
     try:
         yield
     finally:
-        print("Shutting down")
+        logging.info("Shutting down")
 
+sentry_sdk.init(
+    dsn="https://7d07b1ccb68154f1c4ff5e92436a1b66@o4506914333458432.ingest.us.sentry.io/4506914370355200",
+# formance monitoring.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
+    # Enable performance monitoring
+    enable_tracing=True,
+)
 app = FastAPI(
     title="Shloka-Test API",
     lifespan=lifespan)

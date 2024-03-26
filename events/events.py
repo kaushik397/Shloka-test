@@ -4,6 +4,8 @@ import datetime
 import logging
 from dotenv import load_dotenv
 import os
+import sentry_sdk
+from sentry_sdk.crons import monitor
 
 test_table = os.getenv("TEST_TABLE")
 @repeat_every(seconds=900)
@@ -17,11 +19,18 @@ async def load_data_into_supabase(supabase):
         print("Error is:",e)
 
 @repeat_every(seconds=10)
+@monitor(monitor_slug='nifty-stf')
 async def load_data_test():
     """Load data into supabase every 15 mins"""
-    print("test running")
+    logging.info("test running")
 
-@repeat_at(cron="*/1 9-16 * * 1-5")
-async def load_data_cron():
+@repeat_at(cron="* 4-10 * * 1-5")
+@monitor(monitor_slug='nifty-stf')
+async def load_data_cron(supabase):
     """Load data into supabase every 15 mins"""
-    print("testing CRON JOB")
+    logging.info("testing CRON JOB")
+    try:
+        supabase_insert=supabase.table('test_table').insert({"message": f"Background Task CRON JOB AT: {datetime.datetime.now()}"}).execute()
+        return supabase_insert
+    except Exception as e:
+        print("Error is:",e)
